@@ -16,6 +16,7 @@ mixin {
 }
 
 minecraft {
+
     mappings channel: 'official', version: minecraft_version
 
     copyIdeResources = true //Calls processResources when in dev
@@ -90,6 +91,8 @@ dependencies {
         transitive = false
     }
 
+    compileOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_forge_version}")
+    runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
     implementation fg.deobf("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
 
 }
