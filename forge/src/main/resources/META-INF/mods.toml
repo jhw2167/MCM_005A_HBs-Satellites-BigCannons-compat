@@ -36,3 +36,9 @@ mandatory=true
 versionRange="[${foundation_version},)"
 ordering="NONE"
 side="BOTH"
+[[dependencies.${mod_id}]]
+modId="create_big_cannons"
+mandatory=true
+versionRange="[${bigcannons_forge_version},)"
+ordering="AFTER"
+side="BOTH"

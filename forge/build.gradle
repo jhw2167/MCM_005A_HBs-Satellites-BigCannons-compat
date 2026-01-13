@@ -90,6 +90,8 @@ dependencies {
         transitive = false
     }
 
+    implementation fg.deobf("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
+
 }
 
 tasks.withType(JavaCompile).configureEach {

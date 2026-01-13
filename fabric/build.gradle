@@ -27,6 +27,8 @@ dependencies {
         changing = true
     }
 
+    modImplementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_fabric_file_id}"
+
 }
 
 loom {
