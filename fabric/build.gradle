@@ -27,6 +27,9 @@ dependencies {
         changing = true
     }
 
+    //modImplementation "curse.maven:create-${create_fabric_proj_id}:${create_fabric_file_id}"
+    modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}")
+    modImplementation "curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_fabric_file_id}"
     modImplementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_fabric_file_id}"
 
 }

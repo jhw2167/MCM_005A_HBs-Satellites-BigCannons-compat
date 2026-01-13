@@ -8,8 +8,8 @@
         "${mod_author}"
     ],
     "contact": {
-        "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
+        "homepage": "https://discord.gg/dp9d4wymNv",
+        "sources": "https://github.com/jhw2167/MCM_005A_HBs-Satellites-BigCannons-compat"
     },
     "license": "${license}",
     "icon": "icon.png",
