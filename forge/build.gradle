@@ -91,8 +91,12 @@ dependencies {
         transitive = false
     }
 
-    compileOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_forge_version}")
-    runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
+    //implementation ("com.simibubi.create:create-${minecraft_version}:${create_forge_version}")
+    //implementation ("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_forge_version}")
+    //implementation ("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
+    //runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
+    implementation fg.deobf("curse.maven:create-${create_proj_id}:${create_forge_file_id}")
+    implementation fg.deobf("curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_forge_file_id}")
     implementation fg.deobf("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
 
 }

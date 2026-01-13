@@ -115,6 +115,7 @@ subprojects {
         maven{ ( url "https://mvn.devos.one/releases/" ) } // Porting Lib
         maven{ ( url "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" ) } // Forge Config API Port
         maven{ ( url "https://maven.jamieswhiteshirt.com/libs-release" ) } // Reach Entity Attributes
+        maven { url "https://maven.tterrag.com/" } // Flywheel on both, Create and Registrate on forge
     }
 
     dependencies {
