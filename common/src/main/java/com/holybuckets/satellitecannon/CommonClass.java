@@ -35,11 +35,11 @@ public class CommonClass {
         //Balm.getConfig().registerConfig(ChallengeTempleConfig.class);
         SatellitesCompatCreateBigCannonsMain.INSTANCE = new SatellitesCompatCreateBigCannonsMain();
         BalmEventRegister.registerEvents();
-        BalmEventRegister.registerCommands();
-        ModBlocks.initialize(Balm.getBlocks());
-        ModBlockEntities.initialize(Balm.getBlockEntities());
-        ModItems.initialize(Balm.getItems());
-        ModMenus.initialize(Balm.getMenus());
+        //BalmEventRegister.registerCommands();
+        //ModBlocks.initialize(Balm.getBlocks());
+        //ModBlockEntities.initialize(Balm.getBlockEntities());
+        //ModItems.initialize(Balm.getItems());
+        //ModMenus.initialize(Balm.getMenus());
         
         isInitialized = true;
     }

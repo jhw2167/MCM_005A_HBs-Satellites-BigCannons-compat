@@ -42,3 +42,10 @@ mandatory=true
 versionRange="[${bigcannons_version},)"
 ordering="AFTER"
 side="BOTH"
+[[dependencies.${mod_id}]]
+modId="hbs_satellites"
+mandatory=true
+versionRange="[${satellite_version},)"
+ordering="BEFORE"
+side="BOTH"
+

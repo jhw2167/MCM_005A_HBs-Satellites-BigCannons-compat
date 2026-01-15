@@ -44,6 +44,10 @@ dependencies {
     implementation ("com.holybuckets.foundation:HBs_Foundation-common-${minecraft_version}:${foundation_version}") {
         changing = true
     }
+
+    implementation ("com.holybuckets.satellite:HBs_Satellites-common-${minecraft_version}:${satellite_version}") {
+        changing = true
+    }
 }
 
 publishing {

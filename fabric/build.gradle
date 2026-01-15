@@ -27,10 +27,17 @@ dependencies {
         changing = true
     }
 
+    modImplementation ("com.holybuckets.satellite:HBs_Satellites-fabric-${minecraft_version}:${satellite_version}") {
+        changing = true
+        transitive = false
+    }
+
     //modImplementation "curse.maven:create-${create_fabric_proj_id}:${create_fabric_file_id}"
     modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}")
     modImplementation "curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_fabric_file_id}"
     modImplementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_fabric_file_id}"
+
+    modImplementation "curse.maven:chisels-and-bits-${chiselbits_pid_fabric}:${chiselbits_fid_fabric}"
 
 }
 

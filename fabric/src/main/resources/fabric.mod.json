@@ -33,7 +33,8 @@
         "java": ">=17",
         "balm-fabric": ">=${balm_version}",
         "hbs_foundation": ">=${foundation_version}",
-        "createbigcannons": ">=${bigcannons_version}"
+        "createbigcannons": ">=${bigcannons_version}",
+        "hbs_satellites": ">=${satellite_version}"
     },
     "suggests": {
         "another-mod": "*"

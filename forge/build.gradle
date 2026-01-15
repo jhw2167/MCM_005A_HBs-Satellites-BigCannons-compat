@@ -91,10 +91,16 @@ dependencies {
         transitive = false
     }
 
-    //implementation ("com.simibubi.create:create-${minecraft_version}:${create_forge_version}")
-    //implementation ("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_forge_version}")
-    //implementation ("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
-    //runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_forge_version}")
+    implementation fg.deobf("com.holybuckets.satellite:HBs_Satellites-forge-${minecraft_version}:${satellite_version}") {
+        changing = true
+        transitive = false
+    }
+
+    implementation fg.deobf("curse.maven:chisels-bits-${chiselbits_pid}:${chiselbits_fid}") {
+        changing = true
+        transitive = false
+    }
+
     implementation fg.deobf("curse.maven:create-${create_proj_id}:${create_forge_file_id}")
     implementation fg.deobf("curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_forge_file_id}")
     implementation fg.deobf("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")

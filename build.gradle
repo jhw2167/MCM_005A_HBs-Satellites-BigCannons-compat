@@ -152,7 +152,8 @@ subprojects {
                 "balm_version": project.balm_version,
                 "balm_version_range": project.balm_version_range,
                 "foundation_version": project.foundation_version,
-                "bigcannons_version": project.bigcannons_version
+                "bigcannons_version": project.bigcannons_version,
+                "satellite_version" : project.satellite_version
         ]
 
         filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', '*.mixins.json']) {
