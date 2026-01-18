@@ -372,3 +372,92 @@ public void fireShot(ServerLevel level, PitchOrientedContraptionEntity entity) {
 			RitchiesProjectileLib.queueForceLoad(level, cpos1.x, cpos1.z);
 		}
 	}
+
+Hey Ritchie,
+
+Im building a mod with the ability to save and export a targeted block position.
+I am building a compatbility mod with CBC that I want to interface with the Cannon Mount and aim the cannon at this targeted position. Looking at the CBC code, it looks like its gonna be a bit complicated to determine where any given ammunition is going to land and then work backwards to determine the angle and pitch of the cannon. Probably looks like Im going to have to make some assumptions and simulate the launch. Just wondering if anyone has done something similiar and/or if you have any advice on the topic. Thanks!
+
+
+
+---
+
+looking into fireShot method to calculate pitch:
+
+1. Half of the method is determining failure conditions, don't care
+	- Vec3 spawnPos = entity.toGlobalVector(Vec3.atCenterOf(currentPos.relative(this.initialOrientation)), 0);
+
+2. Get Projectile
+
+	while (this.presentBlockEntities.get(currentPos) instanceof IBigCannonBlockEntity cbe) {
+			BigCannonBehavior behavior = cbe.cannonBehavior();
+			StructureBlockInfo containedBlockInfo = behavior.block();
+			StructureBlockInfo cannonInfo = this.blocks.get(currentPos);
+			if (cannonInfo == null) break;
+
+			Block block = containedBlockInfo.state().getBlock();
+
+	- else if (block instanceof ProjectileBlock<?> projBlock && projectile == null) {
+	- projectile = projBlock.getProjectile(level, projectileBlocks);
+	- Obtaining spawn pos of the projectile entity based on PitchOrientedContraptons
+
+	
+
+4. Get muzzle info
+	- StructureBlockInfo muzzleInfo = this.blocks.get(currentPos);
+
+	KEY:
+			projectile.setPos(spawnPos);
+			projectile.setChargePower(propelCtx.chargesUsed);
+			projectile.shoot(vec.x, vec.y, vec.z, propelCtx.chargesUsed, propelCtx.spread);
+			projectile.xRotO = projectile.getXRot();
+			projectile.yRotO = projectile.getYRot();
+
+			- set chargePower:  projectile.getAllProperties().maxCharges(); (I think only applies to mortars)
+			- shoot is minecrafts shoot method
+
+ 			- 
+
+5. Get Forces and ballistic properties:
+
+	- BallisticPropertiesComponent properties = projectile.getBallisticProperties();
+	- formDrag = properties.drag();
+	- double density = DimensionMunitionPropertiesHandler.getProperties(this.level()).dragMultiplier();
+	- drag = formDrag * density * vel; //unless vel is very low, then its just vel
+
+6. Use these values to calculate the likely landing spot of the projectile usin the ideal kinematics equation, do not consider drag for now
+	
+
+	- g = projectile.getGravity()
+	- 
+
+
+
+Aiming the Cannon with Satellites:
+
+1. Connect TargetControllerBlock to your existing display
+2. Place TargetReceiverBlock next to your cannon mount with a constructed and operable cannon on top of it
+	- The TargetReceiverBlock and cannon can be anywhere in the world, but it will not chunkload on its own
+
+3. Load the Cannon with your charges and desired projectile - The ammunitions affects the launch of the projectile so in order to be
+most accurate, only target the cannon AFTER its been loaded and is ready to fire.
+
+4. Select the "target" button on the Satellite Controller and right click anywhere on the holo display to set the target location
+5. The Create big cannon should adjust its angle and pitch to shoot in that direction
+6. Press Fire on the Satellite Target Controller to trigger the firing mechanism
+
+7. 
+
+
+	**Since the cannon uses (more) realistic physics to launch its projectiles this is only a broadly accurate angle
+
+
+
+
+
+
+
+
+
+
+

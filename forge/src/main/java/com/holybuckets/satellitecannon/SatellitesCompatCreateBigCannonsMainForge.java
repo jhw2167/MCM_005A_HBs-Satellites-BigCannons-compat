@@ -1,5 +1,7 @@
 package com.holybuckets.satellitecannon;
 
+import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.satellitecannon.core.RemoteCannonWeapon;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.minecraftforge.api.distmarker.Dist;
@@ -13,6 +15,8 @@ public class SatellitesCompatCreateBigCannonsMainForge {
         super();
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClass::initClient));
+
+        RemoteCannonWeapon.init(EventRegistrar.getInstance());
     }
 
 
