@@ -26,6 +26,7 @@ import rbasamoyai.createbigcannons.cannon_control.cannon_mount.*;
 import rbasamoyai.createbigcannons.cannon_control.contraption.AbstractMountedCannonContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity;
 import rbasamoyai.createbigcannons.cannons.big_cannons.BigCannonBehavior;
+import rbasamoyai.createbigcannons.cannons.big_cannons.BigCannonTubeBlock;
 import rbasamoyai.createbigcannons.cannons.big_cannons.IBigCannonBlockEntity;
 import rbasamoyai.createbigcannons.index.CBCMunitionPropertiesHandlers;
 import rbasamoyai.createbigcannons.munitions.autocannon.config.InertAutocannonProjectilePropertiesHandler;
@@ -176,6 +177,7 @@ public class RemoteCannonWeapon {
         {0.20, Math.toRadians(5.0)},
         {0.30, Math.toRadians(8.0)},
         {0.50, Math.toRadians(10.0)},
+        {100, Math.toRadians(20.0)},
     };
     /**
      * Calculates the estimated landing position of a cannon projectile using ideal kinematics.
@@ -197,6 +199,7 @@ public class RemoteCannonWeapon {
             Direction initialOrientation = cannon.initialOrientation();
             AbstractBigCannonProjectile projectile = null;
             float totalCharges = 0;
+            int barrelLength = 0;
             List<StructureTemplate.StructureBlockInfo> projectileBlocks = new ArrayList<>();
             BlockPos currentPos = endPos;
             while(cannon.presentBlockEntities.get(currentPos) instanceof IBigCannonBlockEntity cbe)
@@ -205,6 +208,11 @@ public class RemoteCannonWeapon {
                 StructureTemplate.StructureBlockInfo containedBlockInfo = behavior.block();
                 StructureTemplate.StructureBlockInfo cannonInfo = cannon.getBlocks().get(currentPos);
                 if (cannonInfo == null) break;
+
+                /* if(cannonInfo instanceof BigCannonBarrelBlock ) {
+                    barrelLength++;
+                }
+                */
                 Block block = containedBlockInfo.state().getBlock();
 
                 if (block instanceof BigCannonPropellantBlock propellant && !(block instanceof ProjectileBlock)) {
@@ -244,44 +252,71 @@ public class RemoteCannonWeapon {
                     entity.toGlobalVector(Vec3.atCenterOf(BlockPos.ZERO), 0)).normalize();
                 projSpawnPos = projSpawnPos.subtract(vec.scale(2));
 
+            Vec3 targetAngle = Vec3.atCenterOf(targetPos).subtract(projSpawnPos).normalize();
+            float yaw = (float) Math.toDegrees(Math.atan2(-targetAngle.x, targetAngle.z));
+
             //Vec from Minecraft shoot function: projectile.shoot(vec.x, vec.y, vec.z, propelCtx.chargesUsed, propelCtx.spread);
             double dist = Math.sqrt(
                 Math.pow(targetPos.getX() - projSpawnPos.x, 2) + Math.pow(targetPos.getZ() - projSpawnPos.z, 2)
             );
 
-            float v0 = Math.max( totalCharges, 1)*20; //once per tick
-            double airTime = dist/v0; //in seconds
 
-            Vec3 targetAngle = Vec3.atCenterOf(targetPos).subtract(projSpawnPos).normalize();
+            double v0 = Math.max( totalCharges, 1)*20; //once per tick
+            double airTime = dist/v0; //in seconds
+            double formDrag = props.drag();
+            double density = DimensionMunitionPropertiesHandler.getProperties(level).dragMultiplier();
+            double dragPerSecond = formDrag*density*20;
+            for(int i =0; i< (int) airTime; i++) {
+                v0 = v0 - (v0 * dragPerSecond);
+            }
             double gravity = DimensionMunitionPropertiesHandler.getProperties(level).gravityMultiplier();
+
 
             //Determine the pitch we need to launch at to stay in the air long enough
             double h0 = targetPos.getY() - projSpawnPos.y;
-            double requiredVy = (h0 + -0.5 * gravity * airTime * airTime) / airTime;
+            double requiredVy = (h0 + 0.5 * gravity * airTime * airTime) / airTime;
 
             //factor drag
             if(requiredVy > v0) { return null; }
+
+            //set yaw and recalculate dist
             double pitchRads = Math.asin(requiredVy / v0);
-            double formDrag = props.drag();
-            double density = DimensionMunitionPropertiesHandler.getProperties(level).dragMultiplier();
+            mount.setPitch((float) Math.toDegrees(pitchRads));
+            mount.setYaw((float) yaw);
+            mount.notifyUpdate();
+
+            projSpawnPos = entity.toGlobalVector(Vec3.atCenterOf(currentPos.relative(initialOrientation)), 0);
+            vec = projSpawnPos.subtract(entity.toGlobalVector(Vec3.atCenterOf(BlockPos.ZERO), 0)).normalize();
+            projSpawnPos = projSpawnPos.subtract(vec.scale(2));
+
+            h0 = targetPos.getY() - projSpawnPos.y;
+            requiredVy = (h0 + 0.5 * gravity * airTime * airTime) / airTime;
+            pitchRads = Math.asin(requiredVy / v0);
+            mount.setPitch((float) Math.toDegrees(pitchRads));
+            mount.notifyUpdate();
+
             final int tries = 10;
             double xDist = 0;
             for(int i=0;i<tries;i++)
             {
-                xDist = simulateLaunchDist(pitchRads, v0, formDrag, airTime, density, gravity);
-                if(xDist >= dist) break;
+                //setting the pitch changes the spawn position of the projectile
+                dist = Math.sqrt( Math.pow(targetPos.getX() - projSpawnPos.x, 2) + Math.pow(targetPos.getZ() - projSpawnPos.z, 2) );
+
+                xDist = simulateLaunchDist(pitchRads, v0, formDrag, airTime, density, gravity, projSpawnPos.y, targetPos.getY());
                 //double diff = dist - xDist;
-                double errorFraction = (1 - xDist/dist);
+                double err = (1 - xDist/dist);
                 double adjustPitch = 0;
+                if(Math.abs(err) < DIST_ERROR_TABLE[0][0]) break;
 
                 for (double[] entry : DIST_ERROR_TABLE) {
-                    if (errorFraction <= entry[0]) {
-                        pitchRads += entry[1];
+                    if (err <= entry[0]) {
+                        pitchRads += (xDist < dist) ?  entry[1] : -entry[1];
                         break;
                     }
                 }
                 double vx = Math.cos(pitchRads) * v0;
                 airTime = dist / vx;
+
             }
             double pitch = Math.toDegrees(pitchRads);
 
@@ -290,7 +325,6 @@ public class RemoteCannonWeapon {
             LoggerProject.logInfo("020006", "Estimated total X Dist: " + xDist + " to pos "+ (projSpawnPos.x + xDist) );
             //LoggerProject.logInfo("020007", "Estimated total Y Dist: " + yDist + " to max height "+ (muzzlePos.y + yDist) );
 
-            float yaw = (float) Math.toDegrees(Math.atan2(-targetAngle.x, targetAngle.z));
             return new Vec3(yaw, pitch, 0);
 
         } catch (Exception e) {
@@ -303,19 +337,22 @@ public class RemoteCannonWeapon {
      * Return total x dist and max y height as function of drag
      * @return
      */
-    public static Double simulateLaunchDist(double pitchRads, double v0, double formDrag, double airTime, double density, double gravity)
+    public static Double simulateLaunchDist(double pitchRads, double v0, double formDrag, double airTime, double density, double gravity,
+    double startPos, double targetPos )
     {
         double dt = 0.05; //1/20 sec per tick
         double vty = Math.sin(pitchRads)*v0*dt;
         double vtx = Math.cos(pitchRads)*v0*dt;
         double xDist = 0;
         double yDist = 0;
-        for(int t=0;t<airTime*20;t++) {
+         for(int t=0;t<airTime*20;t++) {
             xDist += vtx;
             vtx -= (vtx * formDrag * density * 0.5);
-            if(vty>0) {
-                yDist += vty;
-                vty -= ((vty * formDrag * density) + gravity*dt)*0.5;
+
+            yDist += vty;
+            vty -= ((vty * formDrag * density) + gravity*dt)*0.5;
+            if( (vty<0) && (startPos + yDist < targetPos)) {
+                break;
             }
         }
 
