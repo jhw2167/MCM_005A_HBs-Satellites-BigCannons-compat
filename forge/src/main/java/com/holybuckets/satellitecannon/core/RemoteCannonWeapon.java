@@ -1,7 +1,5 @@
 package com.holybuckets.satellitecannon.core;
 
-import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.satellite.LoggerProject;
@@ -20,24 +18,24 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import rbasamoyai.createbigcannons.cannon_control.cannon_mount.*;
 import rbasamoyai.createbigcannons.cannon_control.contraption.AbstractMountedCannonContraption;
+import rbasamoyai.createbigcannons.cannon_control.contraption.MountedAutocannonContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity;
 import rbasamoyai.createbigcannons.cannons.big_cannons.BigCannonBehavior;
-import rbasamoyai.createbigcannons.cannons.big_cannons.BigCannonTubeBlock;
 import rbasamoyai.createbigcannons.cannons.big_cannons.IBigCannonBlockEntity;
+import rbasamoyai.createbigcannons.cannons.big_cannons.drop_mortar.DropMortarEndBlock;
 import rbasamoyai.createbigcannons.index.CBCMunitionPropertiesHandlers;
 import rbasamoyai.createbigcannons.munitions.autocannon.config.InertAutocannonProjectilePropertiesHandler;
 import rbasamoyai.createbigcannons.munitions.autocannon.flak.FlakAutocannonProjectilePropertiesHandler;
 import rbasamoyai.createbigcannons.munitions.big_cannon.AbstractBigCannonProjectile;
 import rbasamoyai.createbigcannons.munitions.big_cannon.ProjectileBlock;
 import rbasamoyai.createbigcannons.munitions.big_cannon.config.InertBigCannonProjectilePropertiesHandler;
+import rbasamoyai.createbigcannons.munitions.big_cannon.drop_mortar_shell.DropMortarShellProjectile;
 import rbasamoyai.createbigcannons.munitions.big_cannon.propellant.BigCannonPropellantBlock;
 import rbasamoyai.createbigcannons.munitions.big_cannon.solid_shot.SolidShotProjectile;
 import rbasamoyai.createbigcannons.munitions.config.DimensionMunitionPropertiesHandler;
-import rbasamoyai.createbigcannons.munitions.config.FluidDragHandler;
 import rbasamoyai.createbigcannons.munitions.config.components.BallisticPropertiesComponent;
 
 import java.util.ArrayList;
@@ -58,6 +56,9 @@ public class RemoteCannonWeapon {
     static Block CBC_SOLID_SHOT;
     private static ResourceLocation  CBC_SOLID_SHOT_TYPE_ID = new ResourceLocation("createbigcannons", "shot");
     static EntityType<SolidShotProjectile> CBC_SOLID_SHOT_TYPE;
+    //new constant for drop_mortar_shell
+    private static ResourceLocation  CBC_DROP_MORTAR_SHELL_TYPE_ID = new ResourceLocation("createbigcannons", "drop_mortar_shell");
+    static EntityType<DropMortarShellProjectile> CBC_DROP_MORTAR_SHELL_TYPE;
 
     static InertAutocannonProjectilePropertiesHandler CBC_AUTOCANNON_PROPS;
     static InertBigCannonProjectilePropertiesHandler CBC_BIGCANNON_PROPS;
@@ -73,23 +74,34 @@ public class RemoteCannonWeapon {
         Registry<EntityType<?>> entityRegistry = event.getServer().registryAccess().registryOrThrow(Registries.ENTITY_TYPE);
         CBC_CANNON_MOUNT_TYPE  = beRegistry.get(CBC_CANNON_MOUNT_ID);
         CBC_SOLID_SHOT_TYPE = (EntityType<SolidShotProjectile>) entityRegistry.get(CBC_SOLID_SHOT_TYPE_ID);
+        CBC_DROP_MORTAR_SHELL_TYPE = (EntityType<DropMortarShellProjectile>) entityRegistry.get(CBC_DROP_MORTAR_SHELL_TYPE_ID);
 
         CBC_AUTOCANNON_PROPS = CBCMunitionPropertiesHandlers.INERT_AUTOCANNON_PROJECTILE;
         CBC_BIGCANNON_PROPS = CBCMunitionPropertiesHandlers.INERT_BIG_CANNON_PROJECTILE;
         FLAK_AUTOCANNON_PROPS = CBCMunitionPropertiesHandlers.FLAK_AUTOCANNON;
 
-        TargetReceiverBlockEntity.addNeighborBlockEntityWeapons(CBC_CANNON_MOUNT_TYPE, RemoteCannonWeapon::cannonOnFire, RemoteCannonWeapon::cannonOnTargetSet);
+        TargetReceiverBlockEntity.addNeighborBlockEntityWeapons(CBC_CANNON_MOUNT_TYPE, RemoteCannonWeapon::cannonOnFire, RemoteCannonWeapon::mountOnTargetSet);
         MSGR = Messager.getInstance();
     }
 
     public static int MIN_RADIUS = 10;
 
-    private static void cannonOnTargetSet(TargetReceiverBlockEntity receiver, BlockEntity blockEntity)
-    {
+    private static void mountOnTargetSet(TargetReceiverBlockEntity receiver, BlockEntity blockEntity) {
         CannonMountBlockEntity be = (CannonMountBlockEntity) blockEntity;
         PitchOrientedContraptionEntity cannonAngler = be.getContraption();
         if (cannonAngler == null) return;
-        AbstractMountedCannonContraption cannon = (AbstractMountedCannonContraption) cannonAngler.getContraption();
+
+        if( cannonAngler.getContraption() instanceof MountedAutocannonContraption autocannon) {
+            autoCannonOnTargetSet(receiver, (CannonMountBlockEntity) blockEntity, autocannon);
+        } else if( cannonAngler.getContraption() instanceof AbstractMountedCannonContraption bigCannon) {
+            cannonOnTargetSet(receiver, (CannonMountBlockEntity) blockEntity, bigCannon);
+        }
+
+    }
+
+    private static void autoCannonOnTargetSet(TargetReceiverBlockEntity receiver, CannonMountBlockEntity be, MountedAutocannonContraption autoCannon)
+    {
+        PitchOrientedContraptionEntity cannonAngler = be.getContraption();
         Player p = receiver.getPlayerFiredWeapon();
         BlockPos targetPos = receiver.getUiTargetBlockPos();
         BlockPos mountPos = be.getBlockPos();
@@ -110,15 +122,51 @@ public class RemoteCannonWeapon {
             yaw += 360;
         }
 
-        LoggerProject.logInfo("020000", "Cannon Target set: " + targetPos);
-        String absoluteYRot = "" + be.getContraptionDirection().toYRot();
-        LoggerProject.logInfo("020001", "Current cannon facing : " + absoluteYRot);
-        String cannonYaw = "" + cannonAngler.yaw;
-        LoggerProject.logInfo("020002", "Cannon yaw : " + cannonYaw);
-        String adjYaw = "" + yaw;
-        LoggerProject.logInfo("020003", "Adjusted yaw to target : " + adjYaw);
-        String recAdjust = "" + (yaw - cannonAngler.yaw);
-        LoggerProject.logInfo("020004", "Required rotation adjustment : " + recAdjust);
+        BlockPos endPos = autoCannon.getStartPos();
+        Vec3 angles;
+        if(autoCannon.presentBlockEntities.get(endPos) instanceof IBigCannonBlockEntity) {
+            angles = calculateCannonAngles(be, autoCannon, endPos, targetPos);
+        } else {
+            return;
+        }
+
+        if(angles == null ) {
+            String id = WEAPON_ID.replace("{pos}", BlockUtil.positionToString(mountPos));
+            MSGR.sendBottomActionHint(p, id + ": Target out of range!");
+            return;
+        }
+        LoggerProject.logInfo("020005", "Estimated Landing Position : " + angles);
+
+        be.setYaw((float) angles.x);
+        be.setPitch((float) angles.y);
+        cannonAngler.setYRot((float) angles.x);
+        be.notifyUpdate();
+
+    }
+
+
+    private static void cannonOnTargetSet(TargetReceiverBlockEntity receiver, CannonMountBlockEntity be, AbstractMountedCannonContraption cannon)
+    {
+        PitchOrientedContraptionEntity cannonAngler = be.getContraption();
+        Player p = receiver.getPlayerFiredWeapon();
+        BlockPos targetPos = receiver.getUiTargetBlockPos();
+        BlockPos mountPos = be.getBlockPos();
+        if (targetPos == null || mountPos == null) return;
+
+        if (BlockUtil.distanceSqr(targetPos, mountPos) < MIN_RADIUS * MIN_RADIUS) {
+            String id = WEAPON_ID.replace("{pos}", BlockUtil.positionToString(mountPos));
+            MSGR.sendBottomActionHint(p, id + ": Not in Range!");
+            return;
+        }
+
+        // atan2(-x, z) gives: North (0°), East (90°), South (180°), West (270°)
+        int dx = targetPos.getX() - mountPos.getX();
+        int dz = targetPos.getZ() - mountPos.getZ();
+        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+
+        if (yaw < 0) {
+            yaw += 360;
+        }
 
         BlockPos endPos = cannon.getStartPos().relative(cannonAngler.getInitialOrientation().getOpposite());
         Vec3 angles;
@@ -140,14 +188,6 @@ public class RemoteCannonWeapon {
         be.setPitch((float) angles.y);
         cannonAngler.setYRot((float) angles.x);
         be.notifyUpdate();
-
-        /*
-
-            Cannon Mount Block Entity
-            Direction dir = this.mountedContraption.getInitialOrientation(); //initial directon our mounted cannon is facing
-            this.mountedContraption may be null
-
-         */
 
     }
 
@@ -201,6 +241,7 @@ public class RemoteCannonWeapon {
             AbstractBigCannonProjectile projectile = null;
             float totalCharges = 0;
             int barrelLength = 0;
+            boolean isDropMortar = false;
             List<StructureTemplate.StructureBlockInfo> projectileBlocks = new ArrayList<>();
             BlockPos currentPos = endPos;
             while(cannon.presentBlockEntities.get(currentPos) instanceof IBigCannonBlockEntity cbe)
@@ -215,6 +256,11 @@ public class RemoteCannonWeapon {
                 }
                 */
                 Block block = containedBlockInfo.state().getBlock();
+
+                if(block instanceof DropMortarEndBlock) {
+                    isDropMortar = true;
+                    break;
+                }
 
                 if (block instanceof BigCannonPropellantBlock propellant && !(block instanceof ProjectileBlock)) {
                     totalCharges += Math.max(0f, propellant.getChargePower(containedBlockInfo));
@@ -234,6 +280,8 @@ public class RemoteCannonWeapon {
             }
 
             BallisticPropertiesComponent props = CBC_BIGCANNON_PROPS.getPropertiesOf(CBC_SOLID_SHOT_TYPE).ballistics();
+            if(isDropMortar)
+                props = CBC_BIGCANNON_PROPS.getPropertiesOf(CBC_DROP_MORTAR_SHELL_TYPE).ballistics();
             if (projectile != null) {
                 /**
                  * protected BallisticPropertiesComponent getBallisticProperties() {

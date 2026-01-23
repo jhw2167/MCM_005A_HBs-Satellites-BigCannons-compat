@@ -47,7 +47,7 @@ public class SatellitesCompatCreateBigCannonsMain {
 
         //register local events
         registrar.registerOnBeforeServerStarted(this::onServerStarting);
-        registrar.registerOnUseBlock(this::onPlayerUseBlock);
+        //registrar.registerOnUseBlock(this::onPlayerUseBlock);
 
     }
 
