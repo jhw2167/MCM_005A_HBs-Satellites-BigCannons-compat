@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.holybuckets.foundation.HBUtil.BlockUtil;
+import static com.holybuckets.satellitecannon.SatellitesCompatCreateBigCannonsMain.V_FACTOR;
 import static rbasamoyai.createbigcannons.cannon_control.cannon_mount.CannonMountBlock.ASSEMBLY_POWERED;
 
 public class RemoteCannonWeapon {
@@ -166,18 +167,18 @@ public class RemoteCannonWeapon {
     //maps [n][0] (error fraction off to dist) to [n][1] (additional pitch)
     private static double[][] DIST_ERROR_TABLE = {
 
-        {0.01, Math.toRadians(0.25)},
-        {0.02, Math.toRadians(0.5)},
-        {0.03, Math.toRadians(1.0)},
-        {0.04, Math.toRadians(1.5)},
-        {0.05, Math.toRadians(2.0)},
-        {0.07, Math.toRadians(2.5)},
-        {0.10, Math.toRadians(3.0)},
-        {0.15, Math.toRadians(4.0)},
-        {0.20, Math.toRadians(5.0)},
-        {0.30, Math.toRadians(8.0)},
-        {0.50, Math.toRadians(10.0)},
-        {100, Math.toRadians(20.0)},
+        {0.01, Math.toRadians(0.001)},
+        {0.02, Math.toRadians(0.002)},
+        {0.03, Math.toRadians(0.01)},
+        {0.04, Math.toRadians(0.025)},
+        {0.05, Math.toRadians(0.05)},
+        {0.07, Math.toRadians(1.0)},
+        {0.10, Math.toRadians(1.25)},
+        {0.15, Math.toRadians(1.5)},
+        {0.20, Math.toRadians(1.75)},
+        {0.30, Math.toRadians(2.0)},
+        {0.50, Math.toRadians(2.5)},
+        {100, Math.toRadians(3.0)},
     };
     /**
      * Calculates the estimated landing position of a cannon projectile using ideal kinematics.
@@ -234,14 +235,20 @@ public class RemoteCannonWeapon {
 
             BallisticPropertiesComponent props = CBC_BIGCANNON_PROPS.getPropertiesOf(CBC_SOLID_SHOT_TYPE).ballistics();
             if (projectile != null) {
-                if(CBC_BIGCANNON_PROPS.getPropertiesOf(projectile.getType()) !=null) {
-                    props = CBC_BIGCANNON_PROPS.getPropertiesOf(projectile.getType()).ballistics();
-                } else if (CBC_AUTOCANNON_PROPS.getPropertiesOf(projectile.getType()) != null) {
-                    props = CBC_AUTOCANNON_PROPS.getPropertiesOf(projectile.getType()).ballistics();
-                } else if (FLAK_AUTOCANNON_PROPS.getPropertiesOf(projectile.getType()) != null) {
-                    props = FLAK_AUTOCANNON_PROPS.getPropertiesOf(projectile.getType()).ballistics();
-                } else {
-                    return null;
+                /**
+                 * protected BallisticPropertiesComponent getBallisticProperties() {
+                 *         return this.getAllProperties().ballistics();
+                 *     }
+                 *     invoke getballisticProperties on projectile using reflection
+                 */
+                try {
+                    Class<?> clazz = projectile.getClass();
+                    java.lang.reflect.Method method = clazz.getDeclaredMethod("getBallisticProperties");
+                    method.setAccessible(true);
+                    props = (BallisticPropertiesComponent) method.invoke(projectile);
+
+                } catch (NoSuchMethodException | IllegalAccessException | java.lang.reflect.InvocationTargetException e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -265,11 +272,10 @@ public class RemoteCannonWeapon {
             double airTime = dist/v0; //in seconds
             double formDrag = props.drag();
             double density = DimensionMunitionPropertiesHandler.getProperties(level).dragMultiplier();
-            double dragPerSecond = formDrag*density*20;
-            for(int i =0; i< (int) airTime; i++) {
-                v0 = v0 - (v0 * dragPerSecond);
-            }
-            double gravity = DimensionMunitionPropertiesHandler.getProperties(level).gravityMultiplier();
+            //props.durabilityMass() not used in drag equation
+
+            double gm = DimensionMunitionPropertiesHandler.getProperties(level).gravityMultiplier();
+            double gravity = -1*props.gravity() * gm;//-1 factored out of equation
 
 
             //Determine the pitch we need to launch at to stay in the air long enough
@@ -301,8 +307,8 @@ public class RemoteCannonWeapon {
             {
                 //setting the pitch changes the spawn position of the projectile
                 dist = Math.sqrt( Math.pow(targetPos.getX() - projSpawnPos.x, 2) + Math.pow(targetPos.getZ() - projSpawnPos.z, 2) );
-
-                xDist = simulateLaunchDist(pitchRads, v0, formDrag, airTime, density, gravity, projSpawnPos.y, targetPos.getY());
+                System.out.println("Try " + i + ": Target dist: " + dist);
+                xDist = simulateLaunchDist(pitchRads, v0, formDrag, airTime, density, gravity, projSpawnPos.y, targetPos.getY(), i);
                 //double diff = dist - xDist;
                 double err = (1 - xDist/dist);
                 double adjustPitch = 0;
@@ -315,7 +321,7 @@ public class RemoteCannonWeapon {
                     }
                 }
                 double vx = Math.cos(pitchRads) * v0;
-                airTime = dist / vx;
+                airTime =2*dist/vx;
 
             }
             double pitch = Math.toDegrees(pitchRads);
@@ -336,28 +342,96 @@ public class RemoteCannonWeapon {
     /**
      * Return total x dist and max y height as function of drag
      * @return
-     */
+    */
+    private static int MAX_ITERS = 10000;
     public static Double simulateLaunchDist(double pitchRads, double v0, double formDrag, double airTime, double density, double gravity,
-    double startPos, double targetPos )
+    double startPos, double targetPos, int attempt )
     {
         double dt = 0.05; //1/20 sec per tick
         double vty = Math.sin(pitchRads)*v0*dt;
         double vtx = Math.cos(pitchRads)*v0*dt;
         double xDist = 0;
         double yDist = 0;
-         for(int t=0;t<airTime*20;t++) {
-            xDist += vtx;
-            vtx -= (vtx * formDrag * density * 0.5);
 
+        double speed = Math.sqrt(vtx * vtx + vty * vty);
+        double dragMagnitude = formDrag * density * speed;
+        dragMagnitude = Math.min(dragMagnitude, speed);
+        double accX = -(vtx / speed) * dragMagnitude;
+        double accY = -(vty / speed) * dragMagnitude - (gravity);
+         for(int t=0;t<airTime*20;t++)
+        //for(int t=0;t<MAX_ITERS;t++)
+         {
+            xDist += vtx;
             yDist += vty;
-            vty -= ((vty * formDrag * density) + gravity*dt)*0.5;
-            if( (vty<0) && (startPos + yDist < targetPos)) {
+            if(attempt==0 || attempt>6 )
+            System.out.printf("Tick: pos=(%.6f, %.6f, %.6f) velocity=(%.6f, %.6f, %.6f)%n",
+                xDist, yDist, 0f, vtx, vty, 0f);
+
+            vtx += accX*V_FACTOR;
+            vty += accY*V_FACTOR;
+
+            if( (vty<0) && (startPos + yDist < targetPos-1)) {
+                break;
+            }
+         speed = Math.sqrt(vtx * vtx + vty * vty);
+         dragMagnitude = formDrag * density * speed;
+         dragMagnitude = Math.min(dragMagnitude, speed);
+         accX = -(vtx / speed) * dragMagnitude;
+         accY = -(vty / speed) * dragMagnitude - (gravity);
+        }
+
+        return xDist;
+    }
+
+    /*
+    public static Double simulateLaunchDist(double pitchRads, double v0, double formDrag,
+                                            double airTime, double density, double gravity,
+                                            double startPos, double targetPos) {
+        double dt = 0.05; // seconds per tick
+
+        // Convert v0 from blocks/second to blocks/tick
+        double vty = Math.sin(pitchRads) * v0 * dt;
+        double vtx = Math.cos(pitchRads) * v0 * dt;
+
+        double xDist = 0;
+        double yDist = 0;
+
+        for(int t = 0; t < airTime * 20; t++) {
+            // Calculate total speed (blocks/tick)
+            double speed = Math.sqrt(vtx * vtx + vty * vty);
+
+            if(speed < 0.0001) break; // Stopped moving
+
+            // Calculate drag magnitude based on TOTAL speed
+            double dragMagnitude = formDrag * density * speed;
+            // For quadratic drag: dragMagnitude *= speed;
+            dragMagnitude = Math.min(dragMagnitude, speed);
+
+            // Decompose drag into components (opposes velocity direction)
+            double dragAccelX = -(vtx / speed) * dragMagnitude;
+            double dragAccelY = -(vty / speed) * dragMagnitude;
+
+            // Total acceleration (blocks/tick²)
+            double accelX = dragAccelX;
+            double accelY = dragAccelY - (gravity * dt);
+
+            // Semi-implicit Euler: position update with old velocity + half acceleration
+            xDist += vtx + accelX * 0.5;
+            yDist += vty + accelY * 0.5;
+
+            // Update velocities with full acceleration
+            vtx += accelX;
+            vty += accelY;
+
+            // Check if projectile has hit ground
+            if(vty < 0 && (startPos + yDist) <= targetPos) {
                 break;
             }
         }
 
         return xDist;
     }
+    */
 
 
     /**

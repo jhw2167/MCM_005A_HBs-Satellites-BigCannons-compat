@@ -3,8 +3,14 @@ package com.holybuckets.satellitecannon;
 
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.satellitecannon.config.TemplateConfig;
+import com.holybuckets.satellitecannon.core.RemoteCannonWeaponCommon;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.UseBlockEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 
 /**
  * Main instance of the mod, initialize this class statically via commonClass
@@ -41,6 +47,7 @@ public class SatellitesCompatCreateBigCannonsMain {
 
         //register local events
         registrar.registerOnBeforeServerStarted(this::onServerStarting);
+        registrar.registerOnUseBlock(this::onPlayerUseBlock);
 
     }
 
@@ -48,6 +55,27 @@ public class SatellitesCompatCreateBigCannonsMain {
         //CONFIG = Balm.getConfig().getActiveConfig(TemplateConfig.class);
         //this.DEV_MODE = CONFIG.devMode;
         this.DEV_MODE = false;
+    }
+
+    public static double V_FACTOR= 1.0;
+    private static double MIN = .10;
+    private static double MAX = 2.0;
+    private void onPlayerUseBlock(UseBlockEvent event) {
+        Level level = event.getLevel();
+        if(level==null) return;
+        if(level.isClientSide()) return;
+        if(event.getHand()!= InteractionHand.MAIN_HAND) return;
+
+        BlockPos pos = event.getHitResult().getBlockPos();
+        if(pos==null) return;
+        if(level.getBlockState(pos).getBlock().equals(Blocks.GRASS_BLOCK)) {
+            if(V_FACTOR<MAX) {
+                V_FACTOR += 0.1;
+            } else {
+                V_FACTOR = MIN;
+            }
+        }
+        LoggerProject.logInfo( "000001", "V_FACTOR set to " + V_FACTOR);
     }
 
 
