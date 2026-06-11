@@ -2,9 +2,7 @@ plugins {
     id 'multiloader-loader'
     id 'fabric-loom'
 }
-
 version = "${mod_version}"
-
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered {
@@ -17,23 +15,6 @@ dependencies {
     modImplementation("net.blay09.mods:balm-fabric:${balm_version}") {
         transitive = false
     }
-
-    modImplementation("com.holybuckets.foundation:hbs_foundation-fabric-${minecraft_version}:${foundation_version}") {
-        transitive = false
-        changing = true
-    }
-
-    modImplementation("com.holybuckets.satellite:hbs_satellites-fabric-${minecraft_version}:${satellite_version}") {
-        transitive = false
-        changing = true
-    }
-
-    modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}")
-    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    modImplementation "curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_fabric_file_id}"
-    modImplementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_fabric_file_id}"
-    modImplementation "curse.maven:chisels-and-bits-${chiselbits_pid_fabric}:${chiselbits_fid_fabric}"
-
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 }
 

@@ -6,6 +6,7 @@ import com.holybuckets.satellitecannon.block.ModBlocks;
 import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.item.BalmItems;
 import net.minecraft.resources.ResourceLocation;
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +21,7 @@ public class ModItems {
     }
 
     private static ResourceLocation id(String name) {
-        return new ResourceLocation(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 
 }

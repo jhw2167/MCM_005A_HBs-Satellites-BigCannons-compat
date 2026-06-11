@@ -1,5 +1,6 @@
 package com.holybuckets.satellitecannon.core;
 
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.satellite.LoggerProject;
@@ -56,14 +57,14 @@ public class RemoteCannonWeapon {
     private static String WEAPON_ID = "[CBC: {pos}]";
     private static Messager MSGR;
 
-    private static ResourceLocation CBC_CANNON_MOUNT_ID = new ResourceLocation("createbigcannons", "cannon_mount");
+    private static ResourceLocation CBC_CANNON_MOUNT_ID = HBUtil.LOC("createbigcannons", "cannon_mount");
     static BlockEntityType<CannonMountBlockEntity> CBC_CANNON_MOUNT_TYPE;
-    private static ResourceLocation CBC_SOLID_SHOT_ID = new ResourceLocation("createbigcannons", "solid_shot");
+    private static ResourceLocation CBC_SOLID_SHOT_ID = HBUtil.LOC("createbigcannons", "solid_shot");
     static Block CBC_SOLID_SHOT;
-    private static ResourceLocation  CBC_SOLID_SHOT_TYPE_ID = new ResourceLocation("createbigcannons", "shot");
+    private static ResourceLocation  CBC_SOLID_SHOT_TYPE_ID = HBUtil.LOC("createbigcannons", "shot");
     static EntityType<SolidShotProjectile> CBC_SOLID_SHOT_TYPE;
     //new constant for drop_mortar_shell
-    private static ResourceLocation  CBC_DROP_MORTAR_SHELL_TYPE_ID = new ResourceLocation("createbigcannons", "drop_mortar_shell");
+    private static ResourceLocation  CBC_DROP_MORTAR_SHELL_TYPE_ID = HBUtil.LOC("createbigcannons", "drop_mortar_shell");
     static EntityType<DropMortarShellProjectile> CBC_DROP_MORTAR_SHELL_TYPE;
 
     static InertAutocannonProjectilePropertiesHandler CBC_AUTOCANNON_PROPS;

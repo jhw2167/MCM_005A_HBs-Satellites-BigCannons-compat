@@ -5,6 +5,7 @@ plugins {
 
 neoForge {
     neoFormVersion = neo_form_version
+    // Automatically enable AccessTransformers if the file exists
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
@@ -22,16 +23,6 @@ dependencies {
     implementation("net.blay09.mods:balm-common:${balm_version}") {
         changing = true
     }
-
-    implementation("com.holybuckets.foundation:hbs_foundation-common-${minecraft_version}:${foundation_version}") {
-        changing = true
-    }
-
-    implementation("com.holybuckets.satellite:hbs_satellites-common-${minecraft_version}:${satellite_version}") {
-        changing = true
-    }
-
-    compileOnly("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
 }
 
 configurations {

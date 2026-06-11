@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
@@ -21,7 +22,7 @@ public class CountingChestScreen extends AbstractContainerScreen<TemplateChestEn
 
     // Path to your custom GUI texture (adjust path to your mod's namespace)
     private static final ResourceLocation TEXTURE =
-        new ResourceLocation(Constants.MOD_ID, "textures/gui/challenge_chest_counting_gui.png");
+        HBUtil.LOC(Constants.MOD_ID, "textures/gui/challenge_chest_counting_gui.png");
 
     public static int INV_HEIGHT = 170;
     public static int INV_WIDTH = 176;

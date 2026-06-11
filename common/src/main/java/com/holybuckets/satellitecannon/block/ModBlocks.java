@@ -4,6 +4,7 @@ import com.holybuckets.satellitecannon.Constants;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.block.BalmBlocks;
 import net.minecraft.resources.ResourceLocation;
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -31,7 +32,7 @@ public class ModBlocks {
     }
 
     private static ResourceLocation id(String name) {
-        return new ResourceLocation(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 
     private static BlockBehaviour.Properties defaultProperties() {

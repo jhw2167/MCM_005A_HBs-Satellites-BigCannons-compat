@@ -6,6 +6,7 @@ import com.holybuckets.satellitecannon.block.ModBlocks;
 import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.block.BalmBlockEntities;
 import net.minecraft.resources.ResourceLocation;
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
@@ -22,6 +23,6 @@ public class ModBlockEntities {
     }
 
     private static ResourceLocation id(String name) {
-        return new ResourceLocation(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 }

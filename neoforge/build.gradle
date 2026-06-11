@@ -1,0 +1,69 @@
+plugins {
+    id 'multiloader-loader'
+    id 'net.neoforged.moddev'
+}
+
+version = "${mod_version}"
+
+neoForge {
+    version = neoforge_version
+    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (at.exists()) {
+        accessTransformers.from(at.absolutePath)
+    }
+    parchment {
+        minecraftVersion = parchment_minecraft
+        mappingsVersion = parchment_version
+    }
+    runs {
+        configureEach {
+            systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
+            ideName = "NeoForge ${it.name.capitalize()} (${project.path})"
+        }
+        client {
+            client()
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+        server {
+            server()
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+dependencies {
+    implementation("net.blay09.mods:balm-neoforge:${balm_version}") {
+        changing = balm_version.contains("SNAPSHOT")
+    }
+
+    implementation("com.holybuckets.foundation:hbs_foundation-neoforge-${minecraft_version}:${foundation_version}") {
+        changing = true
+        transitive = false
+    }
+
+    implementation("com.holybuckets.satellite:hbs_satellites-neoforge-${minecraft_version}:${satellite_version}") {
+        changing = true
+        transitive = false
+    }
+
+    implementation("curse.maven:chisels-bits-${chiselbits_pid}:${chiselbits_fid}") {
+        changing = true
+        transitive = false
+    }
+
+    implementation "curse.maven:create-${create_proj_id}:${create_forge_file_id}"
+    implementation "net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"
+    implementation "curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_forge_file_id}"
+    implementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}"
+
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+}
