@@ -1,6 +1,5 @@
 package com.holybuckets.satellitecannon.client;
 
-import com.holybuckets.satellitecannon.client.screen.ModScreens;
 import com.holybuckets.satellitecannon.item.ModItems;
 import com.holybuckets.foundation.client.ClientBalmEventRegister;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
@@ -12,8 +11,8 @@ public class CommonClassClient {
     public static void initClient() {
         ClientEventRegistrar registrar = ClientEventRegistrar.getInstance();
         ClientBalmEventRegister.registerEvents();
-        ModRenderers.clientInitialize(BalmClient.getRenderers());
-        ModScreens.clientInitialize(BalmClient.getScreens());
+        //ModRenderers.clientInitialize(BalmClient.getRenderers());
+        //ModScreens.clientInitialize(BalmClient.getScreens());
         //ModItems.clientInitialize();
     }
 
