@@ -106,6 +106,7 @@ dependencies {
     implementation fg.deobf("curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_forge_file_id}")
     implementation fg.deobf("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
     //implementation fg.deobf("curse.maven:warium-${warium_proj_id}:${warium_forge_file_id}")
+    //implementation fg.deobf("curse.maven:warium-1123901:7402760")
 
 }
 

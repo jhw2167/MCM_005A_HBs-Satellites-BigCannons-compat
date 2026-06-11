@@ -23,17 +23,15 @@ import rbasamoyai.createbigcannons.cannon_control.cannon_mount.*;
 import rbasamoyai.createbigcannons.cannon_control.contraption.AbstractMountedCannonContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.MountedAutocannonContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity;
-import rbasamoyai.createbigcannons.cannons.CannonBehavior;
 import rbasamoyai.createbigcannons.cannons.ICannonBlockEntity;
 import rbasamoyai.createbigcannons.cannons.autocannon.AutocannonBaseBlock;
 import rbasamoyai.createbigcannons.cannons.autocannon.AutocannonBlockEntity;
 import rbasamoyai.createbigcannons.cannons.autocannon.IAutocannonBlockEntity;
-import rbasamoyai.createbigcannons.cannons.autocannon.breech.AutocannonBreechBlock;
 import rbasamoyai.createbigcannons.cannons.autocannon.material.AutocannonMaterial;
 import rbasamoyai.createbigcannons.cannons.big_cannons.BigCannonBehavior;
 import rbasamoyai.createbigcannons.cannons.big_cannons.IBigCannonBlockEntity;
 import rbasamoyai.createbigcannons.cannons.big_cannons.drop_mortar.DropMortarEndBlock;
-import rbasamoyai.createbigcannons.forge.cannons.AutocannonBreechBlockEntity;
+import rbasamoyai.createbigcannons.fabric.cannons.AutocannonBreechBlockEntity;
 import rbasamoyai.createbigcannons.index.CBCMunitionPropertiesHandlers;
 import rbasamoyai.createbigcannons.munitions.autocannon.config.InertAutocannonProjectilePropertiesHandler;
 import rbasamoyai.createbigcannons.munitions.autocannon.flak.FlakAutocannonProjectilePropertiesHandler;
@@ -352,12 +350,12 @@ public class RemoteCannonWeapon {
                 }
             }
 
-                // Calculate spawn position (muzzle position)
-                Vec3 projSpawnPos = entity.toGlobalVector(
-                    Vec3.atCenterOf(currentPos.relative(initialOrientation)), 0);
-                Vec3 vec = projSpawnPos.subtract(
-                    entity.toGlobalVector(Vec3.atCenterOf(BlockPos.ZERO), 0)).normalize();
-                projSpawnPos = projSpawnPos.subtract(vec.scale(2));
+            // Calculate spawn position (muzzle position)
+            Vec3 projSpawnPos = entity.toGlobalVector(
+                Vec3.atCenterOf(currentPos.relative(initialOrientation)), 0);
+            Vec3 vec = projSpawnPos.subtract(
+                entity.toGlobalVector(Vec3.atCenterOf(BlockPos.ZERO), 0)).normalize();
+            projSpawnPos = projSpawnPos.subtract(vec.scale(2));
 
             Vec3 targetAngle = Vec3.atCenterOf(targetPos).subtract(projSpawnPos).normalize();
             float yaw = (float) Math.toDegrees(Math.atan2(-targetAngle.x, targetAngle.z));
@@ -442,10 +440,10 @@ public class RemoteCannonWeapon {
     /**
      * Return total x dist and max y height as function of drag
      * @return
-    */
+     */
     private static int MAX_ITERS = 10000;
     public static Double simulateLaunchDist(double pitchRads, double v0, double formDrag, double airTime, double density, double gravity,
-    double startPos, double targetPos, int attempt )
+                                            double startPos, double targetPos, int attempt )
     {
         double dt = 0.05; //1/20 sec per tick
         double vty = Math.sin(pitchRads)*v0*dt;
@@ -458,9 +456,9 @@ public class RemoteCannonWeapon {
         dragMagnitude = Math.min(dragMagnitude, speed);
         double accX = -(vtx / speed) * dragMagnitude;
         double accY = -(vty / speed) * dragMagnitude - (gravity);
-         for(int t=0;t<airTime*20;t++)
+        for(int t=0;t<airTime*20;t++)
         //for(int t=0;t<MAX_ITERS;t++)
-         {
+        {
             xDist += vtx;
             yDist += vty;
             //System.out.printf("Tick: pos=(%.6f, %.6f, %.6f) velocity=(%.6f, %.6f, %.6f)%n", xDist, yDist, 0f, vtx, vty, 0f);
@@ -471,11 +469,11 @@ public class RemoteCannonWeapon {
             if( (vty<0) && (startPos + yDist < targetPos-1)) {
                 break;
             }
-         speed = Math.sqrt(vtx * vtx + vty * vty);
-         dragMagnitude = formDrag * density * speed;
-         dragMagnitude = Math.min(dragMagnitude, speed);
-         accX = -(vtx / speed) * dragMagnitude;
-         accY = -(vty / speed) * dragMagnitude - (gravity);
+            speed = Math.sqrt(vtx * vtx + vty * vty);
+            dragMagnitude = formDrag * density * speed;
+            dragMagnitude = Math.min(dragMagnitude, speed);
+            accX = -(vtx / speed) * dragMagnitude;
+            accY = -(vty / speed) * dragMagnitude - (gravity);
         }
 
         return xDist;
