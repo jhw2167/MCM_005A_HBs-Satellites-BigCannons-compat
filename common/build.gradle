@@ -3,6 +3,8 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+version = "${mod_version}"
+
 neoForge {
     neoFormVersion = neo_form_version
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
@@ -19,7 +21,7 @@ dependencies {
     compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 
-    implementation("net.blay09.mods:balm-common:${balm_version}") {
+    compileOnly("net.blay09.mods:balm-common:${balm_version}") {
         changing = true
     }
 
@@ -30,8 +32,11 @@ dependencies {
     implementation("com.holybuckets.satellite:hbs_satellites-common-${minecraft_version}:${satellite_version}") {
         changing = true
     }
+    implementation ("curse.maven:create-${create_proj_id}:${create_forge_file_id}") {
+        transitive = true
+    }
 
-    compileOnly("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
+    implementation("curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}")
 }
 
 configurations {

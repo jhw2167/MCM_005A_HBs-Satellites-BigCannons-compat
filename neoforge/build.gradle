@@ -40,8 +40,14 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+repositories {
+    flatDir {
+        dirs rootProject.file('libs')
+    }
+}
+
 dependencies {
-    implementation("net.blay09.mods:balm-neoforge:${balm_version}") {
+    compileOnly("net.blay09.mods:balm-neoforge:${balm_version}") {
         changing = balm_version.contains("SNAPSHOT")
     }
 
@@ -60,10 +66,11 @@ dependencies {
         transitive = false
     }
 
+    implementation "net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}"
     implementation "curse.maven:create-${create_proj_id}:${create_forge_file_id}"
-    implementation "net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"
     implementation "curse.maven:ritchies-projectile-library-${rpl_proj_id}:${rpl_forge_file_id}"
     implementation "curse.maven:create-big-cannons-${bigcannons_proj_id}:${bigcannons_forge_file_id}"
+
 
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 }

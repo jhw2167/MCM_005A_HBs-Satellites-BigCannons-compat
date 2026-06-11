@@ -760,6 +760,30 @@ This happens when Fabric's build.gradle uses `implementation project(":common")`
 ### HBs_Foundation "version is unspecified"
 Fabric reports a dependency's version as unspecified when that mod's own `fabric.mod.json` has an unexpanded `${version}` placeholder. **Fix:** Ensure the foundation project's processResources expandProps map includes a `"version"` key (or `"mod_version"` if you've standardized on that), and that the `fabric.mod.json` template uses the matching placeholder. The property must be defined somewhere Gradle can resolve it — either in `gradle.properties` or set programmatically in build.gradle (e.g. `version = mod_version`).
 
+### Common and NeoForge subprojects publish with `version=unspecified`
+Symptom: after the update, the Common and NeoForge JARs/POMs (and the published Maven artifacts) carry `version: unspecified`, while Fabric is correct. This happens because the `fabric-build.gradle` and `neoforge-build.gradle` templates set `version = "${mod_version}"` at the top of the subproject build.gradle, but the `common-build.gradle` template **does not**, and the root build.gradle only sets `version = mod_version` on the **root** project — Gradle does not propagate that to subprojects automatically.
+
+The `multiloader-common` convention plugin's capability declarations (`capability("$group:...:$mod_version")`) read `mod_version` straight from `gradle.properties`, so they look fine, but `project.version` (used by `jar`, `sourcesJar`, `mavenJava` publication, and the `processResources` `'version' : mod_version` expansion target) stays at Gradle's default `"unspecified"`.
+
+**Fix — apply both layers:**
+
+1. In **`common/build.gradle`**, add right after the `plugins { ... }` block:
+
+```groovy
+version = "${mod_version}"
+```
+
+2. In the **root `build.gradle`**'s `subprojects { ... }` block, add as the first line so any current or future subproject inherits a real version even if its own build.gradle forgets to set it:
+
+```groovy
+subprojects {
+    version = mod_version
+    // ...rest of subprojects block
+}
+```
+
+Re-run `./gradlew clean build publishToMavenLocal` and confirm the produced POMs under `~/.m2/repository/com/holybuckets/<modid>/...` carry the actual version, not `unspecified`. Apply this fix to every mod updated with this pack (Foundation, Satellites, compat mods, structures mods, etc.) — the Common-template omission affects all of them.
+
 ### fabric-resource-loader-v0 mixin crash (LanguageMixin injection failure)
 Fabric API's `fabric-resource-loader-v0` sub-module version 2.0.0 is incompatible with MC 1.21.1. This happens when Fabric Loom resolves an incorrect version of this sub-module. **Fix:** Ensure `loom_version` is set to `1.8-SNAPSHOT` (or the version recommended at [fabricmc.net/develop](https://fabricmc.net/develop/)). Stale or mismatched Loom snapshots can decompose the Fabric API BOM into wrong sub-module versions. After changing Loom version, run a clean build (`./gradlew clean build`).
 
@@ -801,7 +825,7 @@ When updating a mod, work through these steps in order:
 3. **`gradle.properties`** — set all 1.21.1 versions per Section 3; add `credits`, `foundation_version_min`, NeoForge/NeoForm/Parchment properties; delete all `forge_*` properties; ensure `version` is NOT defined (use `mod_version` only).
 4. **`settings.gradle`** — swap Forge repo for NeoForge repo; include `neoforge` subproject, drop `forge`.
 5. **`build.gradle` (root)** — overwrite with template; add custom repositories from old file; remove processResources block; remove any hardcoded `JavaVersion.VERSION_17`.
-6. **`Common/build.gradle`** — overwrite with template; carry over Balm and foundation dependencies from the old file.
+6. **`Common/build.gradle`** — overwrite with template; carry over Balm and foundation dependencies from the old file; **add `version = "${mod_version}"` right after the `plugins {}` block** (the common template omits it, unlike fabric/neoforge — see "Common and NeoForge subprojects publish with version=unspecified" in §12). Also add `version = mod_version` to the root `subprojects {}` block as a fallback.
 7. **`Fabric/build.gradle`** — overwrite with template; add mod-specific dependencies; lowercase artifact names.
 8. **`forge/` → `neoforge/`** — rename folder, overwrite build.gradle from oreCluster reference, run `folderStreamEditRecurse.sh` to swap `minecraftforge` → `neoforged`, audit imports.
 9. **Update mod metadata** — `mods.toml` → `neoforge.mods.toml`; `pack.mcmeta` pack_format=34; mixin config sanity check; platform helper imports.
