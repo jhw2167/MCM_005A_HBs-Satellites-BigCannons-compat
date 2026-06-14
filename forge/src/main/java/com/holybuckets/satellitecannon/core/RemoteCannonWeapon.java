@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 import rbasamoyai.createbigcannons.cannon_control.cannon_mount.CannonMountBlockEntity;
@@ -98,61 +100,13 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
         this.cbcBigcannonProps = CBCMunitionPropertiesHandlers.INERT_BIG_CANNON_PROJECTILE;
         this.flakAutocannonProps = CBCMunitionPropertiesHandlers.FLAK_AUTOCANNON;
 
-
+        // Both mount types route through the 2-arg interface methods; dispatch happens inside.
         TargetReceiverBlockEntity.addNeighborBlockEntityWeapons(this.cbcCannonMountType, this::cannonOnFire, this::cannonOnTargetSet);
         TargetReceiverBlockEntity.addNeighborBlockEntityWeapons(this.cbcFixedMountType,  this::cannonOnFire, this::cannonOnTargetSet);
         this.msgr = Messager.getInstance();
     }
 
-    private static MountOps mountOps(BlockEntity be) {
-        if (be instanceof CannonMountBlockEntity m) {
-            return new MountOps() {
-                public void setYaw(float v) { m.setYaw(v); }
-                public void setPitch(float v) { m.setPitch(v); }
-                public void notifyUpdate() { m.notifyUpdate(); }
-                public BlockPos pos() { return m.getBlockPos(); }
-                public Level level() { return m.getLevel(); }
-                public boolean isRunning() { return m.isRunning(); }
-                public boolean isFixed() { return false; }
-            };
-        }
-        if (be instanceof FixedCannonMountBlockEntity m) {
-            // Mixin accessor that widens private cannonYaw/cannonPitch (see FixedCannonMountBlockEntityAccessor).
-            final FixedCannonMountBlockEntityAccessor acc = (FixedCannonMountBlockEntityAccessor) m;
-            return new MountOps() {
-                public void setYaw(float v) {
-                    acc.setCannonYaw(v);
-                    PitchOrientedContraptionEntity c = m.getContraption();
-                    if (c == null) return;
-                    c.yaw = v;
-                    c.prevYaw = v;
-                    c.setYRot(v);
-                    c.yRotO = c.getYRot();
-                }
-                public void setPitch(float v) {
-                    acc.setCannonPitch(v);
-                    PitchOrientedContraptionEntity c = m.getContraption();
-                    if (c == null) return;
-                    c.pitch = v;
-                    c.prevPitch = v;
-                    c.setXRot(v);
-                    c.xRotO = c.getXRot();
-                }
-                public void notifyUpdate() { m.notifyUpdate(); }
-                public BlockPos pos() { return m.getBlockPos(); }
-                public Level level() { return m.getLevel(); }
-
-                @Override
-                public boolean isRunning() {return true;
-                }
-
-                public boolean isFixed() { return true; }
-            };
-        }
-        return null;
-    }
-
-    // Resolve the pitch-oriented contraption directly since the common Block interface doesn't expose it.
+    // Resolve the pitch-oriented contraption directly since CBC's common Block interface doesn't expose it.
     private static PitchOrientedContraptionEntity getPitchEntity(BlockEntity be) {
         if (be instanceof CannonMountBlockEntity m) return m.getContraption();
         if (be instanceof FixedCannonMountBlockEntity m) return m.getContraption();
@@ -161,18 +115,15 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
 
     @Override
     public void cannonOnTargetSet(TargetReceiverBlockEntity receiver, BlockEntity blockEntity) {
-        MountOps mount = mountOps(blockEntity);
-        if (mount == null) return;
+        if (!(blockEntity instanceof CannonMountBlockEntity || blockEntity instanceof FixedCannonMountBlockEntity)) return;
 
         PitchOrientedContraptionEntity cannonAngler = getPitchEntity(blockEntity);
         if (cannonAngler == null) return;
 
         if (cannonAngler.getContraption() instanceof MountedAutocannonContraption autocannon) {
-            autoCannonOnTargetSet(receiver, mount, cannonAngler, autocannon);
+            autoCannonOnTargetSet(receiver, blockEntity, cannonAngler, autocannon);
         } else if (cannonAngler.getContraption() instanceof AbstractMountedCannonContraption bigCannon) {
-            cannonOnTargetSet(receiver, mount, cannonAngler, bigCannon);
-            // Persistence of cannonYaw/cannonPitch on FixedCannonMountBlockEntity is handled
-            // inside the MountOps adapter via AT-exposed fields — no tag round-trip needed.
+            cannonOnTargetSet(receiver, blockEntity, cannonAngler, bigCannon);
         }
     }
 
@@ -202,21 +153,23 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
     private void fixedMountOnFire(TargetReceiverBlockEntity receiver,
                                   FixedCannonMountBlockEntity be,
                                   PitchOrientedContraptionEntity cannonAngler) {
+
         if (cannonAngler.getContraption() instanceof MountedAutocannonContraption autocannon) {
             autocannonOnFire(autocannon);
             return;
         }
-        be.onRedstoneUpdate(false, true, true, false, 15);
+        be.onRedstoneUpdate(true, true, true, false, 15);
+        //be.onRedstoneUpdate(false, true, true, false, 15);
         LoggerProject.logInfo("020001", "Fixed Cannon Fire: ");
     }
 
     private void autoCannonOnTargetSet(TargetReceiverBlockEntity receiver,
-                                       MountOps mount,
+                                       BlockEntity blockEntity,
                                        PitchOrientedContraptionEntity cannonAngler,
                                        MountedAutocannonContraption autoCannon) {
         Player p = receiver.getPlayerFiredWeapon();
         BlockPos targetPos = receiver.getUiTargetBlockPos();
-        BlockPos mountPos = mount.pos();
+        BlockPos mountPos = blockEntity.getBlockPos();
         if (targetPos == null || mountPos == null) return;
 
         if (BlockUtil.distanceSqr(targetPos, mountPos) < MIN_RADIUS * MIN_RADIUS) {
@@ -233,7 +186,7 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
         BlockPos endPos = autoCannon.getStartPos();
         Vec3 angles;
         if (autoCannon.presentBlockEntities.get(endPos) instanceof IAutocannonBlockEntity) {
-            angles = calculateCannonAngles(mount, cannonAngler, autoCannon, endPos, targetPos);
+            angles = calculateCannonAngles(blockEntity, cannonAngler, autoCannon, endPos, targetPos);
         } else {
             return;
         }
@@ -244,19 +197,16 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
             return;
         }
 
-        mount.setYaw((float) angles.x);
-        mount.setPitch((float) angles.y);
-        cannonAngler.setYRot((float) angles.x);
-        mount.notifyUpdate();
+        applyAngles(p, blockEntity, cannonAngler, (float) angles.x, (float) angles.y);
     }
 
     private void cannonOnTargetSet(TargetReceiverBlockEntity receiver,
-                                   MountOps mount,
+                                   BlockEntity blockEntity,
                                    PitchOrientedContraptionEntity cannonAngler,
                                    AbstractMountedCannonContraption cannon) {
         Player p = receiver.getPlayerFiredWeapon();
         BlockPos targetPos = receiver.getUiTargetBlockPos();
-        BlockPos mountPos = mount.pos();
+        BlockPos mountPos = blockEntity.getBlockPos();
         if (targetPos == null || mountPos == null) return;
 
         if (BlockUtil.distanceSqr(targetPos, mountPos) < MIN_RADIUS * MIN_RADIUS) {
@@ -273,7 +223,7 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
         BlockPos endPos = cannon.getStartPos().relative(cannonAngler.getInitialOrientation().getOpposite());
         Vec3 angles;
         if (cannon.presentBlockEntities.get(endPos) instanceof IBigCannonBlockEntity) {
-            angles = calculateCannonAngles(mount, cannonAngler, cannon, endPos, targetPos);
+            angles = calculateCannonAngles(blockEntity, cannonAngler, cannon, endPos, targetPos);
         } else {
             return;
         }
@@ -284,10 +234,38 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
             return;
         }
 
-        mount.setYaw((float) angles.x);
-        mount.setPitch((float) angles.y);
-        cannonAngler.setYRot((float) angles.x);
-        mount.notifyUpdate();
+        applyAngles(p, blockEntity, cannonAngler, (float) angles.x, (float) angles.y);
+    }
+
+    // Apply computed angles per mount type: direct setters for normal mount, clipboard hack for fixed.
+    private void applyAngles(Player p, BlockEntity blockEntity, PitchOrientedContraptionEntity cannonAngler,
+                             float absoluteYaw, float pitch) {
+        if (blockEntity instanceof FixedCannonMountBlockEntity fbe) {
+            applyFixedCannonAngles(p, fbe, absoluteYaw, pitch);
+        } else if (blockEntity instanceof CannonMountBlockEntity be) {
+            be.setYaw(absoluteYaw);
+            be.setPitch(pitch);
+            cannonAngler.setYRot(absoluteYaw);
+            be.notifyUpdate();
+        }
+    }
+
+    // Fixed mount controls are player-input bound and write to BE state; we hijack via the clipboard tag.
+    // Yaw is clamped to +/-FIXED_MOUNT_YAW_LIMIT degrees from the cannon's placement facing.
+    private void applyFixedCannonAngles(Player p, FixedCannonMountBlockEntity fbe, float absoluteYaw, float pitch) {
+        Direction facing = fbe.getBlockState().getValue(BlockStateProperties.FACING);
+        float placementYaw = fbe.getContraption().targetYaw;
+
+        float relativeYaw = absoluteYaw - placementYaw;
+        if(relativeYaw > 45 || relativeYaw < -45) {
+            String id = WEAPON_ID.replace("{pos}", BlockUtil.positionToString(fbe.getBlockPos()));
+            msgr.sendBottomActionHint(p, "Target not in range! (" + (int) relativeYaw + " deg)!");
+            return;
+        }
+
+        FixedCannonMountBlockEntityAccessor fbeAccessor = (FixedCannonMountBlockEntityAccessor)  fbe;
+        fbeAccessor.setCannonPitch(pitch);
+        fbeAccessor.setCannonYaw(relativeYaw);
     }
 
     public void autocannonOnFire(MountedAutocannonContraption autocannon) {
@@ -301,15 +279,15 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
         }
     }
 
-    public Vec3 calculateCannonAngles(MountOps mount,
+    public Vec3 calculateCannonAngles(BlockEntity blockEntity,
                                       PitchOrientedContraptionEntity entity,
                                       AbstractMountedCannonContraption cannon,
                                       BlockPos endPos, BlockPos targetPos) {
         try {
-            Level level = mount.level();
+            Level level = blockEntity.getLevel();
             Direction initialOrientation = cannon.initialOrientation();
             // Fixed cannon sits directly above the mount; normal mount has a 1-block gap.
-            int muzzleClearance = mount.isFixed() ? 1 : 2;
+            int muzzleClearance = (blockEntity instanceof FixedCannonMountBlockEntity) ? 1 : 2;
 
             AbstractBigCannonProjectile projectile = null;
             float totalCharges = 0;
@@ -399,9 +377,7 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
             if (requiredVy > v0) return null;
 
             double pitchRads = Math.asin(requiredVy / v0);
-            mount.setPitch((float) Math.toDegrees(pitchRads));
-            mount.setYaw((float) yaw);
-            mount.notifyUpdate();
+            applyIterationAngles(blockEntity, entity, yaw, (float) Math.toDegrees(pitchRads));
 
             projSpawnPos = entity.toGlobalVector(Vec3.atCenterOf(currentPos.relative(initialOrientation)), 0);
             vec = projSpawnPos.subtract(entity.toGlobalVector(Vec3.atCenterOf(BlockPos.ZERO), 0)).normalize();
@@ -410,8 +386,7 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
             h0 = targetPos.getY() - projSpawnPos.y;
             requiredVy = (h0 + 0.5 * gravity * airTime * airTime) / airTime;
             pitchRads = Math.asin(requiredVy / v0);
-            mount.setPitch((float) Math.toDegrees(pitchRads));
-            mount.notifyUpdate();
+            applyIterationAngles(blockEntity, entity, yaw, (float) Math.toDegrees(pitchRads));
 
             final int tries = 10;
             double xDist = 0;
@@ -436,6 +411,24 @@ public class RemoteCannonWeapon implements RemoteCannonWeaponCommon {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    // Intermediate angle writes during the ballistic iteration; normal mount sets the BE, fixed mount writes the entity.
+    private void applyIterationAngles(BlockEntity blockEntity, PitchOrientedContraptionEntity entity, float yaw, float pitch) {
+        if (blockEntity instanceof CannonMountBlockEntity be) {
+            be.setYaw(yaw);
+            be.setPitch(pitch);
+            be.notifyUpdate();
+        } else if (blockEntity instanceof FixedCannonMountBlockEntity) {
+            entity.pitch = pitch;
+            entity.yaw = yaw;
+            entity.prevPitch = pitch;
+            entity.prevYaw = yaw;
+            entity.setXRot(pitch);
+            entity.setYRot(yaw);
+            entity.xRotO = entity.getXRot();
+            entity.yRotO = entity.getYRot();
         }
     }
 }
