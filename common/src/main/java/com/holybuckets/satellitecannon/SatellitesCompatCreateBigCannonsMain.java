@@ -60,6 +60,7 @@ public class SatellitesCompatCreateBigCannonsMain {
     public static double V_FACTOR= 1.0;
     private static double MIN = .10;
     private static double MAX = 2.0;
+    /*
     private void onPlayerUseBlock(UseBlockEvent event) {
         Level level = event.getLevel();
         if(level==null) return;
@@ -77,6 +78,8 @@ public class SatellitesCompatCreateBigCannonsMain {
         }
         LoggerProject.logInfo( "000001", "V_FACTOR set to " + V_FACTOR);
     }
+    */
+
 
 
 }

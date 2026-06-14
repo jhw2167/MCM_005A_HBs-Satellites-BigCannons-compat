@@ -105,6 +105,7 @@ processResources {
             'balm_version'                 : balm_version,
             'balm_version_range'           : balm_version_range,
             'foundation_version_min'     : foundation_version_min,
+            "bigcannons_version" : bigcannons_version
     ]
 
     filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {

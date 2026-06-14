@@ -14,6 +14,5 @@ public class SatellitesCompatMainForge {
         // NeoForge entry point delegating Balm init through the mod event bus
         final var context = new NeoForgeLoadContext(modEventBus);
         Balm.initialize(Constants.MOD_ID, context, CommonClass::init);
-        RemoteCannonWeapon.init(EventRegistrar.getInstance());
     }
 }
