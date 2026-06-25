@@ -31,8 +31,10 @@ public class CommonClass {
 
         // Only resolve the proxy if createbigcannons is present in this runtime.
         if (ModContext.getInstance().isLoaded(CREATE_BIG_CANNONS_MOD_ID)) {
-            RemoteCannonWeaponCommon rmc = (RemoteCannonWeaponCommon) Balm.platformProxy().withForge("com.holybuckets.satellitecannon.core.RemoteCannonWeapon"
-            ).build();
+            RemoteCannonWeaponCommon rmc = (RemoteCannonWeaponCommon) Balm.platformProxy()
+            .withForge("com.holybuckets.satellitecannon.core.RemoteCannonWeaponForge")
+                .withFabric("com.holybuckets.satellitecannon.core.RemoteCannonWeaponFabric")
+            .build();
             rmc.init(EventRegistrar.getInstance());
         }
 
