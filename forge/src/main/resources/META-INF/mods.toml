@@ -38,7 +38,7 @@ ordering="NONE"
 side="BOTH"
 [[dependencies.${mod_id}]]
 modId="createbigcannons"
-mandatory=true
+mandatory=false
 versionRange="[${bigcannons_version},)"
 ordering="AFTER"
 side="BOTH"
